@@ -79,7 +79,7 @@ export default function Splash() {
           }),
         ]).start(() => {
           setTimeout(() => {
-            router.replace("/Home"); // small pause before moving
+            router.replace("/auth/Login"); // small pause before moving
           }, 500);
         });
       }, 1200); // 1.2 second delay before animation starts
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: {
-    width: 300,
-    height: 300,
+    width: 200,
+    height: 200,
   },
 });
