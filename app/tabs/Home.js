@@ -3,8 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import BudgetingTools from "../components/sections/Home/BudgetTools";
-import AnimatedProgressBar from "../components/ui/ProgressBar";
+import BudgetingTools from "../../components/sections/Home/BudgetTools";
+import AnimatedProgressBar from "../../components/ui/ProgressBar";
 
 export default function Home() {
   const [userData, setUserData] = useState({ token: null, name: null });

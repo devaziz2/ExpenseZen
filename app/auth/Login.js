@@ -1,6 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, useRouter } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import {
   Image,
@@ -12,10 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Toast from "react-native-toast-message";
 import CustomButton from "../../components/ui/CustomButton";
 import CustomInput from "../../components/ui/CustomInput";
-import { auth } from "../../firebase";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -50,57 +46,59 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (validate()) {
-      try {
-        setLoading(true);
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
+    router.replace("/tabs/Home");
 
-        console.log(userCredential.user);
-        Toast.show({
-          type: "success",
-          text1: "Login successful",
-          text2: "Welcome back!",
-          visibilityTime: 2500,
-          position: "top",
-        });
-        await AsyncStorage.setItem(
-          "token",
-          userCredential.user.stsTokenManager.accessToken
-        );
-        await AsyncStorage.setItem(
-          "fullName",
-          userCredential.user.displayName || ""
-        );
-        router.replace("/Home");
-      } catch (error) {
-        console.log(error.message);
+    // if (validate()) {
+    //   try {
+    //     setLoading(true);
+    //     const userCredential = await signInWithEmailAndPassword(
+    //       auth,
+    //       email,
+    //       password
+    //     );
 
-        if (error.message === "Firebase: Error (auth/invalid-credential).") {
-          console.log("Invalid credentials");
-          Toast.show({
-            type: "error",
-            text1: "Invalid credentials",
-            text2: "Please check your email and password",
-            visibilityTime: 2500,
-            position: "top",
-          });
-        } else {
-          Toast.show({
-            type: "error",
-            text1: "Login failed",
-            text2: error.message,
-            visibilityTime: 2500,
-            position: "top",
-          });
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
+    //     console.log(userCredential.user);
+    //     Toast.show({
+    //       type: "success",
+    //       text1: "Login successful",
+    //       text2: "Welcome back!",
+    //       visibilityTime: 2500,
+    //       position: "top",
+    //     });
+    //     await AsyncStorage.setItem(
+    //       "token",
+    //       userCredential.user.stsTokenManager.accessToken
+    //     );
+    //     await AsyncStorage.setItem(
+    //       "fullName",
+    //       userCredential.user.displayName || ""
+    //     );
+    //     router.replace("/tabs/Home");
+    //   } catch (error) {
+    //     console.log(error.message);
+
+    //     if (error.message === "Firebase: Error (auth/invalid-credential).") {
+    //       console.log("Invalid credentials");
+    //       Toast.show({
+    //         type: "error",
+    //         text1: "Invalid credentials",
+    //         text2: "Please check your email and password",
+    //         visibilityTime: 2500,
+    //         position: "top",
+    //       });
+    //     } else {
+    //       Toast.show({
+    //         type: "error",
+    //         text1: "Login failed",
+    //         text2: error.message,
+    //         visibilityTime: 2500,
+    //         position: "top",
+    //       });
+    //     }
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // }
   };
 
   return (
