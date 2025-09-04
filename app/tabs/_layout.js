@@ -48,9 +48,9 @@ export default function TabsLayout() {
     {
       key: "reports",
       title: "Analytics",
-      icon: "bar-chart-outline",
+      icon: "chart-bar",
       component: Reports,
-      iconFamily: Ionicons,
+      iconFamily: FontAwesome5,
     },
     {
       key: "profile",

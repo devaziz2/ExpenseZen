@@ -1,54 +1,162 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
+  Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import SavingGoalCard from "../components/sections/goals/GoalsCard";
 
 export default function GoalsScreen() {
+  // ✅ Dummy total saved amount
+  const totalSaved = 1500;
+
+  const [goals, setGoals] = useState([
+    {
+      id: "1",
+      title: "Buy New Phone",
+      required: 1200,
+      targetDate: "2025-09-12",
+    },
+    {
+      id: "2",
+      title: "Trip to Hunza",
+      required: 2000,
+      targetDate: "2025-09-25",
+    },
+  ]);
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newRequired, setNewRequired] = useState("");
+  const [newDate, setNewDate] = useState("");
   const router = useRouter();
 
-  const goals = [
-    { goal: "Emergency Fund", target: 1000, saved: 450 },
-    { goal: "Vacation Trip", target: 2000, saved: 1200 },
-    { goal: "New Laptop", target: 1500, saved: 800 },
-  ];
+  const handleDelete = (id) => {
+    Alert.alert("Delete Goal", "Are you sure you want to delete this goal?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          setGoals((prev) => prev.filter((goal) => goal.id !== id)),
+      },
+    ]);
+  };
+
+  const handleAddGoal = () => {
+    if (!newTitle.trim() || !newRequired || !newDate) return;
+
+    const newGoal = {
+      id: Date.now().toString(),
+      title: newTitle.trim(),
+      required: parseFloat(newRequired),
+      targetDate: newDate,
+    };
+
+    setGoals((prev) => [newGoal, ...prev]);
+    setShowAddModal(false);
+    setNewTitle("");
+    setNewRequired("");
+    setNewDate("");
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={styles.headerr}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#1D3F69" />
+          <Ionicons name="chevron-back" size={22} color="#1D3F69" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saving Goals</Text>
+        <Text style={styles.headerTitlee}>My Budgets</Text>
+        <View style={{ width: 30 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {goals.map((g, index) => {
-          const remaining = g.target - g.saved;
-          return (
-            <LinearGradient
-              key={index}
-              colors={["rgba(255,255,255,0.9)", "rgba(220,235,250,0.6)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
-              <Text style={styles.category}>{g.goal}</Text>
-              <Text style={styles.limit}>Target: ${g.target}</Text>
-              <Text style={styles.spent}>Saved: ${g.saved}</Text>
-              <Text style={styles.remaining}>Remaining: ${remaining}</Text>
-            </LinearGradient>
-          );
-        })}
+      {/* Total Saved */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Total Saved</Text>
+        <Text style={styles.headerAmount}>${totalSaved}</Text>
+      </View>
+
+      {/* Add Goal Button */}
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => setShowAddModal(true)}
+      >
+        <Ionicons name="add-circle" size={20} color="#fff" />
+        <Text style={styles.addButtonText}>Add Goal</Text>
+      </TouchableOpacity>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {goals.map((goal) => (
+          <SavingGoalCard
+            key={goal.id}
+            {...goal}
+            totalSaved={totalSaved}
+            onDelete={() => handleDelete(goal.id)}
+          />
+        ))}
       </ScrollView>
+
+      {/* Add Goal Modal */}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Goal</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Goal Title"
+              value={newTitle}
+              onChangeText={setNewTitle}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Required Amount"
+              value={newRequired}
+              onChangeText={setNewRequired}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Target Date (YYYY-MM-DD)"
+              value={newDate}
+              onChangeText={setNewDate}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                style={[styles.modalButton, styles.cancelButton]}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleAddGoal}
+                style={[styles.modalButton, styles.saveButton]}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -60,28 +168,103 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
   },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  backButton: { marginRight: 15, padding: 5 },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#1D3F69" },
-  card: {
+
+  headerr: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  backButton: {
+    backgroundColor: "#E5E7EB",
+    borderRadius: 999,
+    padding: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitlee: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1D3F69",
+    textAlign: "center",
+  },
+
+  header: {
+    backgroundColor: "white",
     borderRadius: 18,
-    padding: 18,
+    padding: 20,
     marginBottom: 16,
     shadowColor: "#1D3F69",
     shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
+    elevation: 4,
   },
-  category: {
-    fontSize: 16,
+  headerTitle: { fontSize: 16, fontWeight: "600", color: "#555" },
+  headerAmount: {
+    fontSize: 24,
     fontWeight: "700",
     color: "#1D3F69",
-    marginBottom: 6,
+    marginTop: 6,
   },
-  limit: { fontSize: 14, color: "#555" },
-  spent: { fontSize: 14, color: "#1D3F69" },
-  remaining: { fontSize: 14, fontWeight: "600", color: "#2A9D8F" },
+  scrollContent: { paddingBottom: 20 },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1D3F69",
+    paddingVertical: 12,
+    borderRadius: 12,
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  addButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 20,
+    width: "100%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1D3F69",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  modalInput: {
+    borderWidth: 0.8,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 14,
+    fontSize: 16,
+    backgroundColor: "#F9FAFB",
+  },
+  modalButtons: { flexDirection: "row", justifyContent: "space-between" },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  cancelButton: { backgroundColor: "#F3F4F6", marginRight: 8 },
+  saveButton: { backgroundColor: "#1D3F69", marginLeft: 8 },
+  cancelButtonText: { color: "#6B7280", fontWeight: "600" },
+  saveButtonText: { color: "white", fontWeight: "600" },
 });

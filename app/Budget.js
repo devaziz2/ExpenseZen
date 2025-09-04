@@ -1,24 +1,47 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import BudgetCard from "../components/sections/budget/BudgetCard";
 
 export default function BudgetScreen() {
   const router = useRouter();
+  const [category, setCategory] = useState("");
+  const [limit, setLimit] = useState("");
+  const [budgets, setBudgets] = useState([]);
 
-  // Dummy budget data
-  const budgets = [
-    { category: "Food", limit: 300, spent: 120 },
-    { category: "Clothing", limit: 200, spent: 80 },
-    { category: "Entertainment", limit: 150, spent: 60 },
-    { category: "Transport", limit: 100, spent: 45 },
-  ];
+  const handleAddBudget = () => {
+    if (!category.trim() || !limit) return;
+
+    const newBudget = {
+      id: Date.now(), // Simple ID generation
+      category: category.trim(),
+      limit: parseFloat(limit),
+      spent: 0,
+    };
+
+    setBudgets([...budgets, newBudget]);
+    setCategory("");
+    setLimit("");
+  };
+
+  const handleEditBudget = (index, updatedBudget) => {
+    const updatedBudgets = [...budgets];
+    updatedBudgets[index] = { ...updatedBudgets[index], ...updatedBudget };
+    setBudgets(updatedBudgets);
+  };
+
+  const handleDeleteBudget = (index) => {
+    const updatedBudgets = budgets.filter((_, i) => i !== index);
+    setBudgets(updatedBudgets);
+  };
 
   return (
     <View style={styles.container}>
@@ -27,33 +50,62 @@ export default function BudgetScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#1D3F69" />
+          <Ionicons name="chevron-back" size={22} color="#1D3F69" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Budgets</Text>
+        <View style={{ width: 30 }} />
       </View>
 
-      {/* Scrollable budget list */}
+      {/* Input Section */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Category"
+          placeholderTextColor="#9CA3AF"
+          value={category}
+          onChangeText={setCategory}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Limit"
+          placeholderTextColor="#9CA3AF"
+          keyboardType="numeric"
+          value={limit}
+          onChangeText={setLimit}
+        />
+        <TouchableOpacity
+          onPress={handleAddBudget}
+          style={styles.addButton}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.addButtonText}>Add Budget</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Budget List */}
       <ScrollView showsVerticalScrollIndicator={false}>
-        {budgets.map((budget, index) => {
-          const remaining = budget.limit - budget.spent;
-          return (
-            <LinearGradient
-              key={index}
-              colors={["rgba(255,255,255,0.9)", "rgba(220,235,250,0.6)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
-              <View style={styles.cardRow}>
-                <Text style={styles.category}>{budget.category}</Text>
-                <Text style={styles.limit}>${budget.limit}</Text>
-              </View>
-              <Text style={styles.spent}>Spent: ${budget.spent}</Text>
-              <Text style={styles.remaining}>Remaining: ${remaining}</Text>
-            </LinearGradient>
-          );
-        })}
+        {budgets.map((budget, index) => (
+          <BudgetCard
+            key={budget.id || index}
+            category={budget.category}
+            limit={budget.limit}
+            spent={budget.spent}
+            onEdit={(updatedBudget) => handleEditBudget(index, updatedBudget)}
+            onDelete={() => handleDeleteBudget(index)}
+          />
+        ))}
+
+        {budgets.length === 0 && (
+          <View style={styles.emptyState}>
+            <Ionicons name="wallet-outline" size={64} color="#D1D5DB" />
+            <Text style={styles.emptyTitle}>No Budgets Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Add your first budget to start tracking your expenses
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -69,52 +121,65 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
   backButton: {
-    marginRight: 15,
-    padding: 5,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 999,
+    padding: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#1D3F69",
+    textAlign: "center",
   },
-  card: {
-    borderRadius: 18,
-    padding: 18,
+  inputContainer: {
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  input: {
+    width: "100%",
+    borderBottomWidth: 1,
+    borderBottomColor: "#D1D5DB",
+    paddingVertical: 10,
     marginBottom: 16,
-    shadowColor: "#1D3F69",
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 10,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-  },
-  cardRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  category: {
     fontSize: 16,
-    fontWeight: "700",
     color: "#1D3F69",
   },
-  limit: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#555",
+  addButton: {
+    backgroundColor: "#1D3F69",
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
   },
-  spent: {
-    fontSize: 14,
-    color: "#E63946",
-    marginBottom: 2,
-  },
-  remaining: {
-    fontSize: 14,
-    color: "#2A9D8F",
+  addButtonText: {
+    color: "#FFF",
+    fontSize: 16,
     fontWeight: "600",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    textAlign: "center",
+    paddingHorizontal: 40,
   },
 });

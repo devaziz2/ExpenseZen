@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BudgetingTools from "../../components/sections/Home/BudgetTools";
+import AlertIcon from "../../components/ui/AlterIcon";
 import AnimatedProgressBar from "../../components/ui/ProgressBar";
 
 export default function Home() {
@@ -45,7 +46,8 @@ export default function Home() {
             <Text style={styles.welcome}>Welcome back,</Text>
             <Text style={styles.name}>{userData.name || "Guest"} 👋</Text>
           </View>
-          <Text style={styles.date}>{today}</Text>
+          {/* <Text style={styles.date}>{today}</Text> */}
+          <AlertIcon isAlter={false} />
         </View>
 
         {/* Budget Card with Gradient Glass Effect */}
@@ -98,6 +100,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
+    marginRight: 5,
   },
   animatedBar: {
     marginTop: 20,
