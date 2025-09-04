@@ -1,7 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BudgetingTools from "../../components/sections/Home/BudgetTools";
 import AnimatedProgressBar from "../../components/ui/ProgressBar";
@@ -30,6 +37,7 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="light" backgroundColor="#1D3F69" />
       <ScrollView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -68,7 +76,7 @@ export default function Home() {
           </View>
           <Text style={styles.saving}>$450</Text>
         </View>
-        <AnimatedProgressBar saved={450} total={1000} />
+        <AnimatedProgressBar saved={550} total={1000} />
         <BudgetingTools />
       </ScrollView>
     </SafeAreaView>
@@ -99,10 +107,9 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   heading: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 16,
+    fontWeight: "700",
     color: "#1D3F69",
-    letterSpacing: 0.5,
   },
   welcome: {
     fontSize: 16,

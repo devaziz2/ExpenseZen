@@ -1,8 +1,4 @@
-import {
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
@@ -21,35 +17,23 @@ export default function BudgetingTools() {
 
   const tools = [
     {
-      title: "Set Budget",
-      icon: (
-        <MaterialCommunityIcons
-          name="wallet-outline"
-          size={36}
-          color="#1D3F69"
-        />
-      ),
+      title: "My Budget",
+      icon: <FontAwesome5 name="balance-scale" size={30} color="#1D3F69" />,
       route: "/Budget",
     },
     {
       title: "Saving Goals",
-      icon: <FontAwesome5 name="piggy-bank" size={32} color="#1D3F69" />,
+      icon: <FontAwesome5 name="hand-holding-usd" size={30} color="#1D3F69" />,
       route: "/Goals",
     },
     {
-      title: "Group Budget",
-      icon: <Ionicons name="people-outline" size={34} color="#1D3F69" />,
+      title: "Group Budgets",
+      icon: <FontAwesome5 name="users" size={30} color="#1D3F69" />,
       route: "/GroupBudget",
     },
     {
       title: "Rank List",
-      icon: (
-        <MaterialCommunityIcons
-          name="trophy-outline"
-          size={36}
-          color="#1D3F69"
-        />
-      ),
+      icon: <FontAwesome5 name="medal" size={30} color="#1D3F69" />,
       route: "/Ranks",
     },
   ];
@@ -90,11 +74,10 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   heading: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 16,
+    fontWeight: "700",
     color: "#1D3F69",
     marginBottom: 20,
-    letterSpacing: 0.5,
   },
   grid: {
     flexDirection: "row",
