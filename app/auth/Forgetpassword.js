@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useState } from "react";
 import {
@@ -7,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import Toast from "react-native-toast-message";
@@ -17,6 +20,7 @@ import { auth } from "../../firebase";
 export default function Forgetpassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handlePasswordReset = async () => {
     if (!email) {
@@ -77,6 +81,13 @@ export default function Forgetpassword() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.container}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={24} color="#1D3F69" />
+          </TouchableOpacity>
+
           <Image
             source={require("../../assets/images/splash.png")}
             style={styles.logo}
@@ -110,6 +121,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F9FAFB",
     padding: 20,
+    justifyContent: "center",
+  },
+  backButton: {
+    position: "absolute",
+    top: 70,
+    left: 20,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 999,
+    padding: 8,
+    alignItems: "center",
     justifyContent: "center",
   },
   logo: { width: 100, height: 100, alignSelf: "center", marginBottom: 20 },

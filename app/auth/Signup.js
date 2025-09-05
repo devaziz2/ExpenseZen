@@ -133,6 +133,9 @@ export default function SignupScreen() {
             onChangeText={setFullName}
             icon="person"
             error={errors.fullName}
+            onClearError={() =>
+              setErrors((prev) => ({ ...prev, fullName: "" }))
+            }
           />
 
           <CustomInput
@@ -142,6 +145,7 @@ export default function SignupScreen() {
             onChangeText={setEmail}
             icon="email"
             error={errors.email}
+            onClearError={() => setErrors((prev) => ({ ...prev, email: "" }))}
           />
 
           <CustomInput
@@ -152,6 +156,9 @@ export default function SignupScreen() {
             secureTextEntry
             icon="lock"
             error={errors.password}
+            onClearError={() =>
+              setErrors((prev) => ({ ...prev, password: "" }))
+            }
           />
 
           <CustomButton

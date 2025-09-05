@@ -68,7 +68,7 @@ export default function Home() {
           </View>
           <Text style={styles.saving}>$450</Text>
         </View>
-        <AnimatedProgressBar saved={450} total={1000} />
+        <AnimatedProgressBar saved={30} total={1000} />
         <BudgetingTools />
       </ScrollView>
     </SafeAreaView>

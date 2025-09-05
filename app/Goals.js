@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -70,6 +71,7 @@ export default function GoalsScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.headerr}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -78,25 +80,25 @@ export default function GoalsScreen() {
         >
           <Ionicons name="chevron-back" size={22} color="#1D3F69" />
         </TouchableOpacity>
-        <Text style={styles.headerTitlee}>My Budgets</Text>
+        <Text style={styles.headerTitlee}>Saving Goals</Text>
         <View style={{ width: 30 }} />
       </View>
 
-      {/* Total Saved */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Total Saved</Text>
-        <Text style={styles.headerAmount}>${totalSaved}</Text>
-      </View>
-
-      {/* Add Goal Button */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setShowAddModal(true)}
+      {/* Total Saved Card with gradient */}
+      <LinearGradient
+        colors={["#1D3F69", "#3B82F6"]}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <Ionicons name="add-circle" size={20} color="#fff" />
-        <Text style={styles.addButtonText}>Add Goal</Text>
-      </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <Ionicons name="wallet-outline" size={26} color="white" />
+          <Text style={styles.headerTitle}>Total Saved</Text>
+        </View>
+        <Text style={styles.headerAmount}>${totalSaved}</Text>
+      </LinearGradient>
 
+      {/* Goals List */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {goals.map((goal) => (
           <SavingGoalCard
@@ -107,6 +109,14 @@ export default function GoalsScreen() {
           />
         ))}
       </ScrollView>
+
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowAddModal(true)}
+      >
+        <Ionicons name="add" size={28} color="white" />
+      </TouchableOpacity>
 
       {/* Add Goal Modal */}
       <Modal
@@ -189,39 +199,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
+  // Total Saved Card
   header: {
-    backgroundColor: "white",
     borderRadius: 18,
     padding: 20,
     marginBottom: 16,
-    shadowColor: "#1D3F69",
+    shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
     elevation: 4,
   },
-  headerTitle: { fontSize: 16, fontWeight: "600", color: "#555" },
-  headerAmount: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1D3F69",
-    marginTop: 6,
-  },
-  scrollContent: { paddingBottom: 20 },
-  addButton: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1D3F69",
-    paddingVertical: 12,
-    borderRadius: 12,
-    justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  addButtonText: {
-    color: "white",
+  headerTitle: {
     fontSize: 16,
     fontWeight: "600",
+    color: "white",
     marginLeft: 8,
+  },
+  headerAmount: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "white",
+    marginTop: 6,
+  },
+
+  scrollContent: { paddingBottom: 100 },
+
+  // Floating Button
+  fab: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    backgroundColor: "#1D3F69",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 6,
   },
 
   // Modal

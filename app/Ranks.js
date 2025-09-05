@@ -1,8 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
-  ScrollView,
+  Animated,
+  Easing,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,74 +15,195 @@ import {
 export default function RankListScreen() {
   const router = useRouter();
 
-  const ranks = [
-    { name: "Alice", savings: 1200, rank: 1 },
-    { name: "Bob", savings: 950, rank: 2 },
-    { name: "Charlie", savings: 700, rank: 3 },
-    { name: "David", savings: 500, rank: 4 },
-  ];
+  // Dummy leaderboard data
+  const [users] = useState([
+    { id: "1", name: "Ali", goalsMet: 12 },
+    { id: "2", name: "Sara", goalsMet: 10 },
+    { id: "3", name: "John", goalsMet: 8 },
+    { id: "4", name: "Ayesha", goalsMet: 7 },
+    { id: "5", name: "Hamza", goalsMet: 6 },
+    { id: "6", name: "Zara", goalsMet: 5 },
+    { id: "7", name: "Bilal", goalsMet: 4 },
+    { id: "8", name: "Usman", goalsMet: 4 },
+    { id: "9", name: "Fatima", goalsMet: 3 },
+    { id: "10", name: "David", goalsMet: 2 },
+  ]);
+
+  const podium = users.slice(0, 3);
+  const rest = users.slice(3);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color="#1D3F69" />
+          <Ionicons name="chevron-back" size={22} color="#1D3F69" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Rank List</Text>
+        <Text style={styles.headerTitle}>Leaderboard</Text>
+        <View style={{ width: 30 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {ranks.map((r, index) => (
-          <LinearGradient
-            key={index}
-            colors={["rgba(255,255,255,0.9)", "rgba(220,235,250,0.6)"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.card}
+      {/* Podium */}
+      <Animated.View
+        style={[
+          styles.podiumContainer,
+          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        {/* Second */}
+        <LinearGradient
+          colors={["#CBD5E1", "#94A3B8"]}
+          style={[styles.podiumCard, { height: 160 }]}
+        >
+          <Text style={styles.rankText}>🥈</Text>
+          <Text style={styles.nameText}>{podium[1]?.name}</Text>
+          <Text style={styles.goalText}>{podium[1]?.goalsMet} Goals</Text>
+        </LinearGradient>
+
+        {/* First */}
+        <LinearGradient
+          colors={["#FACC15", "#FDE68A"]}
+          style={[styles.podiumCard, { height: 200 }]}
+        >
+          <Text style={styles.rankText}>🥇</Text>
+          <Text style={styles.nameText}>{podium[0]?.name}</Text>
+          <Text style={styles.goalText}>{podium[0]?.goalsMet} Goals</Text>
+        </LinearGradient>
+
+        {/* Third */}
+        <LinearGradient
+          colors={["#FB923C", "#FDBA74"]}
+          style={[styles.podiumCard, { height: 140 }]}
+        >
+          <Text style={styles.rankText}>🥉</Text>
+          <Text style={styles.nameText}>{podium[2]?.name}</Text>
+          <Text style={styles.goalText}>{podium[2]?.goalsMet} Goals</Text>
+        </LinearGradient>
+      </Animated.View>
+
+      {/* Rest of leaderboard */}
+      <FlatList
+        data={rest}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item, index }) => (
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            }}
           >
-            <View style={styles.row}>
-              <Text style={styles.rank}>#{r.rank}</Text>
-              <Text style={styles.name}>{r.name}</Text>
-              <Text style={styles.savings}>${r.savings}</Text>
-            </View>
-          </LinearGradient>
-        ))}
-      </ScrollView>
+            <LinearGradient
+              colors={["#3B82F6", "#60A5FA"]}
+              style={styles.listCard}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="medal-outline"
+                  size={22}
+                  color="white"
+                />
+                <Text style={styles.listRank}>{index + 4}</Text>
+                <Text style={styles.listName}>{item.name}</Text>
+              </View>
+              <Text style={styles.listGoals}>{item.goalsMet} Goals</Text>
+            </LinearGradient>
+          </Animated.View>
+        )}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-    paddingHorizontal: 20,
-    paddingTop: 50,
-  },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  backButton: { marginRight: 15, padding: 5 },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#1D3F69" },
-  card: {
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
-    shadowColor: "#1D3F69",
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 10,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-  },
-  row: {
+  container: { flex: 1, backgroundColor: "#F9FAFB", paddingTop: 50 },
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  rank: { fontSize: 16, fontWeight: "700", color: "#E63946", width: 40 },
-  name: { fontSize: 16, fontWeight: "600", color: "#1D3F69", flex: 1 },
-  savings: { fontSize: 14, fontWeight: "600", color: "#2A9D8F" },
+  backButton: {
+    backgroundColor: "#E5E7EB",
+    borderRadius: 999,
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1D3F69",
+  },
+
+  // Podium
+  podiumContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "flex-end",
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  podiumCard: {
+    flex: 1,
+    marginHorizontal: 6,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+  rankText: { fontSize: 28, fontWeight: "700", marginBottom: 4 },
+  nameText: { fontSize: 16, fontWeight: "600", color: "#1E293B" },
+  goalText: { fontSize: 14, color: "#334155", marginTop: 2 },
+
+  // List
+  listCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginVertical: 6,
+    padding: 16,
+    borderRadius: 14,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+  },
+  listRank: { fontSize: 16, fontWeight: "700", marginLeft: 6, color: "white" },
+  listName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+    color: "white",
+  },
+  listGoals: { fontSize: 14, color: "white", fontWeight: "500" },
 });

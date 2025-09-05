@@ -32,7 +32,7 @@ export default function BudgetingTools() {
       route: "/GroupBudget",
     },
     {
-      title: "Rank List",
+      title: "Leaderboard",
       icon: <FontAwesome5 name="medal" size={30} color="#1D3F69" />,
       route: "/Ranks",
     },
