@@ -1,9 +1,116 @@
-import { Text, View } from "react-native";
+// NotificationsScreen.js
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import NotificationCard from "../components/sections/alters/NotificationCard";
 
-export default function Alter() {
+export default function NotificationsScreen() {
+  const router = useRouter();
+
+  const [notifications, setNotifications] = useState([
+    {
+      id: "1",
+      title: "Budget Alert 🚨",
+      message: "You’ve exceeded your Food budget this month.",
+      time: "2h ago",
+      read: false,
+    },
+    {
+      id: "2",
+      title: "Goal Update 🎯",
+      message: "You’re close to reaching your Savings goal!",
+      time: "1d ago",
+      read: true,
+    },
+    {
+      id: "3",
+      title: "Reminder ⏰",
+      message: "Don’t forget to log your weekly expenses.",
+      time: "3d ago",
+      read: false,
+    },
+  ]);
+
+  const markAllAsRead = () => {
+    setNotifications((prev) =>
+      prev.map((n) => ({
+        ...n,
+        read: true,
+      }))
+    );
+  };
+
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>Alter Screen</Text>
+    <View style={styles.container}>
+      {/* Header with Mark All Read */}
+      <View style={styles.header}>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 2,
+            alignItems: "center",
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={22} color="#1D3F69" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Alters</Text>
+        </View>
+        <TouchableOpacity style={styles.readAllBtn} onPress={markAllAsRead}>
+          <Text style={styles.readAllText}>Mark all as read</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Notification List */}
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <NotificationCard item={item} />}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+    padding: 20,
+    paddingTop: 60,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1D3F69",
+  },
+
+  readAllBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: "#1D3F69",
+    borderRadius: 10,
+  },
+  readAllText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+});

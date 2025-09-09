@@ -25,53 +25,61 @@ export default function ProfileScreen() {
     try {
       await Share.share({
         message:
-          "Hey! 👋 I’m using ExpenseZen app – it’s super helpful for expense tracking. You should try it too!",
+          "Hey! 👋 I’m using ExpenseZen – the easiest way to manage expenses. Try it out!",
       });
     } catch (error) {
       console.log(error);
     }
   };
 
+  const handleLogout = () => {
+    // TODO: connect with your auth logout logic
+    console.log("User logged out");
+  };
+
   return (
     <View style={styles.container}>
-      {/* User Icon */}
+      {/* Avatar */}
       <View style={styles.avatarWrapper}>
-        <Ionicons
-          name="person-circle"
-          size={120}
-          color="#1D3F69"
-          style={styles.avatar}
-        />
+        <Ionicons name="person-circle" size={120} color="#1D3F69" />
       </View>
 
-      {/* Details Card */}
+      {/* User Details */}
       <View style={styles.detailsCard}>
-        {/* Name */}
-        <Text style={styles.label}>Name</Text>
-        <View style={styles.inputField}>
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Name</Text>
           <Text style={styles.value}>{name}</Text>
         </View>
-
-        {/* Email */}
-        <Text style={styles.label}>Email</Text>
-        <View style={[styles.inputField, styles.disabledInput]}>
-          <Text style={styles.value}>{email}</Text>
+        <View style={styles.divider} />
+        <View style={styles.detailRow}>
+          <Text style={styles.label}>Email</Text>
+          <Text style={[styles.value, { color: "#6B7280" }]}>{email}</Text>
         </View>
       </View>
 
-      {/* Edit Profile Button */}
-      <TouchableOpacity
-        style={styles.editButton}
-        onPress={() => setEditing(true)}
-      >
-        <MaterialCommunityIcons name="account-edit" size={20} color="white" />
-        <Text style={styles.editText}>Edit Profile</Text>
-      </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.primaryBtn]}
+          onPress={() => setEditing(true)}
+        >
+          <MaterialCommunityIcons name="account-edit" size={20} color="white" />
+          <Text style={styles.actionText}>Edit Profile</Text>
+        </TouchableOpacity>
 
-      {/* Share App Button */}
-      <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-        <Ionicons name="share-social" size={20} color="white" />
-        <Text style={styles.shareText}>Share app with friends</Text>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.secondaryBtn]}
+          onPress={handleShare}
+        >
+          <Ionicons name="share-social" size={20} color="white" />
+          <Text style={styles.actionText}>Share App</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Logout */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Ionicons name="log-out-outline" size={20} color="white" />
+        <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
       {/* Edit Modal */}
@@ -84,13 +92,16 @@ export default function ProfileScreen() {
               onChangeText={setNewName}
               style={styles.input}
               placeholder="Enter your name"
+              placeholderTextColor="#9CA3AF"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelBtn]}
                 onPress={() => setEditing(false)}
               >
-                <Text style={{ color: "#555" }}>Cancel</Text>
+                <Text style={{ color: "#374151", fontWeight: "500" }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveBtn]}
@@ -109,95 +120,95 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#F3F4F6",
     alignItems: "center",
     paddingTop: 60,
   },
   avatarWrapper: {
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-    borderRadius: 100,
     marginBottom: 25,
-  },
-  avatar: {
-    borderRadius: 100,
   },
   detailsCard: {
     width: "90%",
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 18,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 30,
     shadowColor: "#000",
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     elevation: 3,
+  },
+  detailRow: {
+    marginBottom: 12,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 12,
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 6,
-  },
-  inputField: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 18,
-    backgroundColor: "#F9FAFB",
-  },
-  disabledInput: {
-    backgroundColor: "#E5E7EB",
+    color: "#6B7280",
+    marginBottom: 4,
   },
   value: {
     fontSize: 16,
+    fontWeight: "600",
     color: "#1D3F69",
   },
-  editButton: {
+  actions: {
+    width: "90%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  actionBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1D3F69",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    justifyContent: "center",
+    paddingVertical: 14,
     borderRadius: 12,
-    marginBottom: 16,
-    elevation: 3,
+    marginHorizontal: 6,
   },
-  editText: {
+  primaryBtn: {
+    backgroundColor: "#1D3F69",
+  },
+  secondaryBtn: {
+    backgroundColor: "#3B82F6",
+  },
+  actionText: {
     color: "white",
     marginLeft: 8,
     fontWeight: "600",
   },
-  shareButton: {
+  logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#3B82F6",
+    backgroundColor: "#EF4444",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
-    elevation: 3,
+    position: "absolute",
+    bottom: 40,
+    alignSelf: "center",
   },
-  shareText: {
+  logoutText: {
     color: "white",
     marginLeft: 8,
     fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 24,
     width: "100%",
     maxWidth: 360,
@@ -211,21 +222,22 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#D1D5DB",
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 24,
     fontSize: 16,
     backgroundColor: "#F9FAFB",
+    color: "#111827",
   },
   modalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
   },
   modalButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
     marginLeft: 12,
   },
   cancelBtn: {
