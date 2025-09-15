@@ -15,25 +15,17 @@ import AlertIcon from "../../components/ui/AlterIcon";
 import AnimatedProgressBar from "../../components/ui/ProgressBar";
 
 export default function Home() {
-  const [userData, setUserData] = useState({ token: null, name: null });
-  const today = new Date().toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const [user, setUser] = useState();
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        const name = await AsyncStorage.getItem("fullName");
-        setUserData({ token, name });
-      } catch (error) {
-        console.log("Error fetching data from storage:", error);
+    const loadUserData = async () => {
+      const storedUser = await AsyncStorage.getItem("userData");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setUser(user);
       }
     };
-
-    loadData();
+    loadUserData();
   }, []);
 
   return (
@@ -44,7 +36,7 @@ export default function Home() {
         <View style={styles.header}>
           <View>
             <Text style={styles.welcome}>Welcome back,</Text>
-            <Text style={styles.name}>{userData.name || "Guest"} 👋</Text>
+            <Text style={styles.name}>{user?.fullName || "Guest"} 👋</Text>
           </View>
           {/* <Text style={styles.date}>{today}</Text> */}
           <AlertIcon isAlter={false} />

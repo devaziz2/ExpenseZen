@@ -12,9 +12,10 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 
+import { doc, setDoc } from "firebase/firestore";
 import CustomButton from "../../components/ui/CustomButton";
 import CustomInput from "../../components/ui/CustomInput";
-import { auth } from "../../firebase";
+import { auth, db } from "../../firebase";
 
 export default function SignupScreen() {
   const [fullName, setFullName] = useState("");
@@ -74,6 +75,16 @@ export default function SignupScreen() {
           displayName: fullName,
         });
 
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          fullName,
+          email,
+          totalAmount: 0,
+          totalSavings: 0,
+          monthlyLimit: 0,
+          budgets: [],
+          createdAt: new Date(),
+        });
+
         console.log("✅ User created:", userCredential.user);
         Toast.show({
           type: "success",
@@ -84,6 +95,7 @@ export default function SignupScreen() {
         });
         router.replace("/auth/Login");
       } catch (error) {
+        console.log(error);
         console.log(error.message);
 
         if (error.message === "Firebase: Error (auth/email-already-in-use).") {
