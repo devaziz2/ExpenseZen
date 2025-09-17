@@ -76,16 +76,18 @@ export default function SignupScreen() {
         });
 
         await setDoc(doc(db, "users", userCredential.user.uid), {
+          id: userCredential.user.uid,
           fullName,
           email,
-          totalAmount: 0,
-          totalSavings: 0,
+          balance: 0,
+          savings: 0,
+          spendings: 0,
           monthlyLimit: 0,
           budgets: [],
           createdAt: new Date(),
         });
 
-        console.log("✅ User created:", userCredential.user);
+        // console.log("✅ User created:", userCredential.user);
         Toast.show({
           type: "success",
           text1: "Account created",

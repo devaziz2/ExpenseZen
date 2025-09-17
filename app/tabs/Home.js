@@ -1,6 +1,9 @@
+import { db } from "@/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { doc, getDoc } from "firebase/firestore";
+import { useCallback, useEffect, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -15,18 +18,40 @@ import AlertIcon from "../../components/ui/AlterIcon";
 import AnimatedProgressBar from "../../components/ui/ProgressBar";
 
 export default function Home() {
-  const [user, setUser] = useState();
+  const [userID, setUserID] = useState();
+  const [user, setUser] = useState(null);
 
+  // ✅ Load userID once
   useEffect(() => {
     const loadUserData = async () => {
       const storedUser = await AsyncStorage.getItem("userData");
       if (storedUser) {
-        const user = JSON.parse(storedUser);
-        setUser(user);
+        const parsedUser = JSON.parse(storedUser);
+        setUserID(parsedUser.id);
       }
     };
     loadUserData();
   }, []);
+
+  // ✅ Fetch Firestore data whenever screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserData = async () => {
+        if (!userID) return;
+        try {
+          const userDoc = await getDoc(doc(db, "users", userID));
+          if (userDoc.exists()) {
+            setUser(userDoc.data());
+            console.log("Actual users data again get...");
+          }
+        } catch (err) {
+          console.log("Error fetching user data:", err);
+        }
+      };
+
+      fetchUserData();
+    }, [userID])
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -38,11 +63,10 @@ export default function Home() {
             <Text style={styles.welcome}>Welcome back,</Text>
             <Text style={styles.name}>{user?.fullName || "Guest"} 👋</Text>
           </View>
-          {/* <Text style={styles.date}>{today}</Text> */}
-          <AlertIcon isAlter={false} />
+          <AlertIcon isAlter={user?.isAlert ?? false} />
         </View>
 
-        {/* Budget Card with Gradient Glass Effect */}
+        {/* Budget Card */}
         <LinearGradient
           colors={["rgba(144,238,144,0.6)", "rgba(173,255,216,0.4)"]}
           start={{ x: 0, y: 0 }}
@@ -51,7 +75,9 @@ export default function Home() {
         >
           <View style={styles.overlay}>
             <Text style={styles.cardTitle}>Monthly Budget</Text>
-            <Text style={styles.amount}>$1000.00</Text>
+            <Text style={styles.amount}>
+              ${Number(user?.monthlyLimit ?? 0).toFixed(2)}
+            </Text>
 
             <View style={styles.row}>
               <Text style={styles.label}>Spendings</Text>
@@ -59,18 +85,25 @@ export default function Home() {
             </View>
 
             <View style={styles.row}>
-              <Text style={styles.value}>$200.00</Text>
-              <Text style={styles.value}>$800.00</Text>
+              <Text style={styles.value}>
+                ${Number(user?.spendings ?? 0).toFixed(2)}
+              </Text>
+              <Text style={styles.value}>
+                ${Number(user?.savings ?? 0).toFixed(2)}
+              </Text>
             </View>
           </View>
         </LinearGradient>
+
         <View style={styles.animatedBar}>
           <View>
             <Text style={styles.heading}>Saving Streak</Text>
           </View>
-          <Text style={styles.saving}>$450</Text>
+          <Text style={styles.saving}>${user?.savings ?? 0}</Text>
         </View>
-        <AnimatedProgressBar saved={800} total={1000} />
+        {user && (
+          <AnimatedProgressBar saved={user?.savings} total={user?.balance} />
+        )}
         <BudgetingTools />
       </ScrollView>
     </SafeAreaView>
@@ -134,7 +167,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 12,
-    elevation: 6,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
     overflow: "hidden",

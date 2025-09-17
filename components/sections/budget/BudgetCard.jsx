@@ -1,9 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
-  Animated,
   Dimensions,
   Modal,
   StyleSheet,
@@ -28,105 +27,9 @@ export default function BudgetCard({
   const [editLimit, setEditLimit] = useState(limit.toString());
   const [editSpent, setEditSpent] = useState(spent.toString());
 
-  // Progress bar animation
-  const progress = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-  const dropdownAnim = useRef(new Animated.Value(0)).current;
-
-  // Calculate percentage (clamped to 1 for progress bar)
   const percentage = limit > 0 ? Math.min(spent / limit, 1) : 0;
   const percentageValue = (limit > 0 ? spent / limit : 0) * 100;
   const remaining = limit - spent;
-
-  // Gradient & glow color logic
-  const getProgressColor = () => {
-    if (percentageValue < 30) {
-      return {
-        gradient: ["#34D399", "#10B981", "#059669"], // green
-        glow: "#6EE7B7",
-      };
-    } else if (percentageValue >= 30 && percentageValue < 90) {
-      return {
-        gradient: ["#60A5FA", "#3B82F6", "#1D3F69"], // blue
-        glow: "#93C5FD",
-      };
-    } else {
-      return {
-        gradient: ["#F87171", "#EF4444", "#DC2626"], // red
-        glow: "#FCA5A5",
-      };
-    }
-  };
-
-  const colors = getProgressColor();
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: percentage * 100, // ✅ just percentage 0–100
-      duration: 1200,
-      useNativeDriver: false,
-    }).start();
-
-    if (percentageValue >= 60) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: false,
-          }),
-          Animated.timing(glowAnim, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: false,
-          }),
-        ])
-      ).start();
-    }
-  }, [percentage, percentageValue]);
-
-  useEffect(() => {
-    if (showDropdown) {
-      Animated.spring(dropdownAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
-    } else {
-      Animated.spring(dropdownAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
-    }
-  }, [showDropdown]);
-
-  const handleEdit = () => {
-    setShowDropdown(false);
-    setShowEditModal(true);
-  };
-
-  const handleDelete = () => {
-    setShowDropdown(false);
-    Alert.alert(
-      "Delete Budget",
-      `Are you sure you want to delete the "${category}" budget?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => onDelete(),
-        },
-      ],
-      { cancelable: true }
-    );
-  };
 
   const handleSaveEdit = () => {
     if (!editCategory.trim() || !editLimit || !editSpent) return;
@@ -139,6 +42,18 @@ export default function BudgetCard({
     setShowEditModal(false);
   };
 
+  const handleDelete = () => {
+    setShowDropdown(false);
+    Alert.alert(
+      "Delete Budget",
+      `Are you sure you want to delete the "${category}" budget?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => onDelete() },
+      ]
+    );
+  };
+
   return (
     <>
       <LinearGradient
@@ -147,11 +62,10 @@ export default function BudgetCard({
         end={{ x: 1, y: 1 }}
         style={styles.card}
       >
-        {/* Header Row */}
         <View style={styles.cardRow}>
           <Text style={styles.category}>{category}</Text>
           <View style={styles.headerRight}>
-            <Text style={styles.limit}>${limit}</Text>
+            <Text style={styles.limit}>${limit.toFixed(2)}</Text>
             <TouchableOpacity
               onPress={() => setShowDropdown(!showDropdown)}
               style={styles.menuButton}
@@ -162,36 +76,19 @@ export default function BudgetCard({
           </View>
         </View>
 
-        {/* Dropdown Menu */}
         {showDropdown && (
-          <Animated.View
-            style={[
-              styles.dropdown,
-              {
-                transform: [
-                  {
-                    scale: dropdownAnim,
-                  },
-                  {
-                    translateY: dropdownAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-10, 0],
-                    }),
-                  },
-                ],
-                opacity: dropdownAnim,
-              },
-            ]}
-          >
+          <View style={styles.dropdown}>
             <TouchableOpacity
-              onPress={handleEdit}
+              onPress={() => {
+                setShowDropdown(false);
+                setShowEditModal(true);
+              }}
               style={styles.dropdownItem}
               activeOpacity={0.8}
             >
               <Ionicons name="create-outline" size={16} color="#1D3F69" />
               <Text style={styles.dropdownText}>Edit</Text>
             </TouchableOpacity>
-            <View style={styles.dropdownDivider} />
             <TouchableOpacity
               onPress={handleDelete}
               style={styles.dropdownItem}
@@ -202,58 +99,24 @@ export default function BudgetCard({
                 Delete
               </Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         )}
 
-        {/* Spent & Remaining */}
-        <Text style={styles.spent}>Spent: ${spent}</Text>
+        <Text style={styles.spent}>Spent: ${spent.toFixed(2)}</Text>
         <Text
           style={[
             styles.remaining,
-            { color: remaining < 0 ? "#E63946" : "#2A9D8F" }, // ✅ red if exceeded
+            { color: remaining < 0 ? "#E63946" : "#2A9D8F" },
           ]}
         >
-          Remaining: ${remaining}
+          Remaining: ${remaining.toFixed(2)}
         </Text>
 
-        {/* Animated Progress Bar */}
-        <View style={styles.progressContainer}>
-          {/* Track */}
-          <LinearGradient
-            colors={["#F3F4F6", "#E5E7EB", "#D1D5DB"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.track}
+        {/* Simple Progress Bar */}
+        <View style={styles.progressTrack}>
+          <View
+            style={[styles.progressFill, { width: `${percentage * 100}%` }]}
           />
-
-          {/* Progress */}
-          <Animated.View
-            style={[
-              styles.progressWrapper,
-              {
-                width: progress.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ["0%", "100%"], // ✅ stays inside track
-                }),
-                shadowColor: colors.glow,
-                shadowOpacity: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.3, 0.8],
-                }),
-                shadowRadius: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [4, 10],
-                }),
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={colors.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.progress}
-            />
-          </Animated.View>
         </View>
       </LinearGradient>
 
@@ -267,31 +130,22 @@ export default function BudgetCard({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Budget</Text>
-            <Text style={{ marginLeft: 5 }}>Category</Text>
-
             <TextInput
               style={styles.modalInput}
               placeholder="Category"
-              placeholderTextColor="#9CA3AF"
               value={editCategory}
               onChangeText={setEditCategory}
             />
-            <Text style={{ marginLeft: 5 }}>Limit</Text>
-
             <TextInput
               style={styles.modalInput}
               placeholder="Limit"
-              placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
               value={editLimit}
               onChangeText={setEditLimit}
             />
-            <Text style={{ marginLeft: 5 }}>Spent</Text>
-
             <TextInput
               style={styles.modalInput}
               placeholder="Spent"
-              placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
               value={editSpent}
               onChangeText={setEditSpent}
@@ -300,18 +154,15 @@ export default function BudgetCard({
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 onPress={() => setShowEditModal(false)}
-                style={[styles.modalButton, styles.cancelButton]}
-                activeOpacity={0.8}
+                style={styles.cancelButton}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={handleSaveEdit}
-                style={[styles.modalButton, styles.saveButton]}
-                activeOpacity={0.8}
+                style={styles.saveButton}
               >
-                <Text style={styles.saveButtonText}>Edit</Text>
+                <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -330,7 +181,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 10,
-    elevation: 6,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.6)",
     position: "relative",

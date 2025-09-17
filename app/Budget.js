@@ -1,6 +1,9 @@
+import { db } from "@/firebase";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { arrayUnion, doc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -16,31 +19,103 @@ export default function BudgetScreen() {
   const [category, setCategory] = useState("");
   const [limit, setLimit] = useState("");
   const [budgets, setBudgets] = useState([]);
+  const [userId, setUserId] = useState(null);
 
-  const handleAddBudget = () => {
-    if (!category.trim() || !limit) return;
+  // ✅ Load budgets from Firestore
+  useEffect(() => {
+    const loadUserBudgets = async () => {
+      const storedUser = await AsyncStorage.getItem("userData");
+      if (!storedUser) return;
+
+      const parsedUser = JSON.parse(storedUser);
+      const uid = parsedUser.id;
+      setUserId(uid);
+
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        setBudgets(userDoc.data().budgets || []);
+      }
+    };
+
+    loadUserBudgets();
+  }, []);
+
+  // ✅ Add Budget
+  const handleAddBudget = async () => {
+    if (!category.trim() || !limit || !userId) return;
 
     const newBudget = {
-      id: Date.now(), // Simple ID generation
+      id: Date.now(),
       category: category.trim(),
       limit: parseFloat(limit),
       spent: 0,
     };
 
-    setBudgets([...budgets, newBudget]);
+    // Update Firestore
+    const updateData = await updateDoc(doc(db, "users", userId), {
+      budgets: arrayUnion(newBudget),
+    });
+
+    console.log("update data");
+    console.log(updateData);
+
+    console.log("new budget added");
+
+    setBudgets((prev) => [...prev, newBudget]);
     setCategory("");
     setLimit("");
   };
 
-  const handleEditBudget = (index, updatedBudget) => {
+  // ✅ Edit Budget
+  const handleEditBudget = async (index, updatedBudget) => {
     const updatedBudgets = [...budgets];
     updatedBudgets[index] = { ...updatedBudgets[index], ...updatedBudget };
     setBudgets(updatedBudgets);
+
+    const userDocRef = doc(db, "users", userId);
+
+    // Update Firestore (replace whole budgets array)
+    await updateDoc(doc(db, "users", userId), {
+      budgets: updatedBudgets,
+    });
+
+    // ✅ If spent increased → subtract from monthlyLimit
+    if (updatedBudget.spent !== budgets[index].spent) {
+      const diff = updatedBudget.spent - budgets[index].spent;
+      if (diff > 0) {
+        const userDocRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists()) {
+          const { monthlyLimit } = userSnap.data();
+          await updateDoc(userDocRef, {
+            monthlyLimit: monthlyLimit - diff,
+          });
+        }
+      }
+    }
+
+    if (updatedBudget.spent > updatedBudget.limit) {
+      await updateDoc(userDocRef, {
+        isAlert: true,
+        notifications: arrayUnion({
+          id: Date.now().toString(),
+          title: "Budget Alert 🚨",
+          message: `You’ve exceeded your ${updatedBudget.category} budget.`,
+          time: new Date().toISOString(),
+          isRead: false,
+        }),
+      });
+    }
   };
 
-  const handleDeleteBudget = (index) => {
+  // ✅ Delete Budget
+  const handleDeleteBudget = async (index) => {
     const updatedBudgets = budgets.filter((_, i) => i !== index);
     setBudgets(updatedBudgets);
+
+    await updateDoc(doc(db, "users", userId), {
+      budgets: updatedBudgets,
+    });
   };
 
   return (
@@ -84,7 +159,6 @@ export default function BudgetScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Budget List */}
       <ScrollView showsVerticalScrollIndicator={false}>
         {budgets.map((budget, index) => (
           <BudgetCard

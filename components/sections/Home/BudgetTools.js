@@ -100,7 +100,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
-    elevation: 8,
   },
   iconWrapper: {
     marginBottom: 12,

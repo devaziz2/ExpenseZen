@@ -8,6 +8,7 @@ export default function SavingGoalCard({
   targetDate,
   totalSaved,
   onDelete,
+  completed,
 }) {
   // Format date
   const dateObj = new Date(targetDate);
@@ -17,10 +18,9 @@ export default function SavingGoalCard({
     year: "numeric",
   });
 
-  // Win condition
   const today = new Date();
   const diffDays = Math.ceil((dateObj - today) / (1000 * 60 * 60 * 24));
-  const isWin = diffDays <= 7 && totalSaved >= required;
+  const isWin = completed || (diffDays <= 7 && totalSaved >= required);
 
   return (
     <LinearGradient
@@ -29,7 +29,6 @@ export default function SavingGoalCard({
       end={{ x: 1, y: 1 }}
       style={styles.card}
     >
-      {/* Header */}
       <View style={styles.cardRow}>
         <Text style={styles.title}>{title}</Text>
         <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
@@ -37,19 +36,13 @@ export default function SavingGoalCard({
         </TouchableOpacity>
       </View>
 
-      {/* Required Money */}
       <Text style={styles.required}>Required: ${required}</Text>
-
-      {/* Target Date */}
       <Text style={styles.date}>Target: {formattedDate}</Text>
 
-      {/* Success Message */}
       {isWin && (
         <View style={styles.successRow}>
           <Ionicons name="trophy" size={20} color="#fff" />
-          <Text style={styles.successText}>
-            Congratulations! You achieved this goal 🎉
-          </Text>
+          <Text style={styles.successText}>You achieved this goal 🎉</Text>
         </View>
       )}
     </LinearGradient>
@@ -65,7 +58,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 10,
-    elevation: 6,
+
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.6)",
   },

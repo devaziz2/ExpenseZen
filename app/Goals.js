@@ -1,7 +1,10 @@
+import { db } from "@/firebase";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -15,54 +18,112 @@ import {
 import SavingGoalCard from "../components/sections/goals/GoalsCard";
 
 export default function GoalsScreen() {
-  // ✅ Dummy total saved amount
-  const totalSaved = 1500;
+  const [totalSaved, setTotalSaved] = useState(0);
+  const [goals, setGoals] = useState([]);
+  const [userId, setUserId] = useState(null);
 
-  const [goals, setGoals] = useState([
-    {
-      id: "1",
-      title: "Buy New Phone",
-      required: 1200,
-      targetDate: "2025-09-12",
-    },
-    {
-      id: "2",
-      title: "Trip to Hunza",
-      required: 2000,
-      targetDate: "2025-09-25",
-    },
-  ]);
-
-  // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newRequired, setNewRequired] = useState("");
   const [newDate, setNewDate] = useState("");
   const router = useRouter();
 
-  const handleDelete = (id) => {
-    Alert.alert("Delete Goal", "Are you sure you want to delete this goal?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () =>
-          setGoals((prev) => prev.filter((goal) => goal.id !== id)),
-      },
-    ]);
+  // ✅ Load user data
+  useEffect(() => {
+    const loadUserData = async () => {
+      const storedUser = await AsyncStorage.getItem("userData");
+      if (!storedUser) return;
+
+      const parsedUser = JSON.parse(storedUser);
+      const savings = parsedUser.savings;
+      const uid = parsedUser.id;
+      setUserId(uid);
+      setTotalSaved(savings);
+
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        setGoals(userDoc.data().goals || []);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  // ✅ Check for achievements
+  useEffect(() => {
+    const checkGoals = async () => {
+      if (!userId || goals.length === 0) return;
+
+      const today = new Date();
+      const userRef = doc(db, "users", userId);
+      let updated = false;
+
+      for (let goal of goals) {
+        const target = new Date(goal.targetDate);
+        const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 7 && totalSaved >= goal.required && !goal.completed) {
+          goal.completed = true;
+          updated = true;
+
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const { goalsComplete = 0 } = snap.data();
+            await updateDoc(userRef, {
+              goals: goals,
+              goalsComplete: goalsComplete + 1,
+            });
+          }
+        }
+      }
+
+      if (updated) setGoals([...goals]);
+    };
+
+    checkGoals();
+  }, [goals, totalSaved, userId]);
+
+  const handleDelete = async (id) => {
+    const updatedGoals = goals.filter((goal) => goal.id !== id);
+    setGoals(updatedGoals);
+    if (userId) {
+      await updateDoc(doc(db, "users", userId), { goals: updatedGoals });
+    }
   };
 
-  const handleAddGoal = () => {
-    if (!newTitle.trim() || !newRequired || !newDate) return;
+  const handleAddGoal = async () => {
+    if (!newTitle.trim() || !newRequired || !newDate) {
+      Alert.alert("Validation", "All fields are required.");
+      return;
+    }
+
+    // Validate date format yyyy-mm-dd
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(newDate)) {
+      Alert.alert("Validation", "Date must be in YYYY-MM-DD format.");
+      return;
+    }
+
+    const targetDate = new Date(newDate);
+    if (targetDate <= new Date()) {
+      Alert.alert("Validation", "Date must be in the future.");
+      return;
+    }
 
     const newGoal = {
       id: Date.now().toString(),
       title: newTitle.trim(),
       required: parseFloat(newRequired),
       targetDate: newDate,
+      completed: false,
     };
 
-    setGoals((prev) => [newGoal, ...prev]);
+    const updatedGoals = [newGoal, ...goals];
+    setGoals(updatedGoals);
+
+    if (userId) {
+      await updateDoc(doc(db, "users", userId), { goals: updatedGoals });
+    }
+
     setShowAddModal(false);
     setNewTitle("");
     setNewRequired("");
@@ -108,6 +169,14 @@ export default function GoalsScreen() {
             onDelete={() => handleDelete(goal.id)}
           />
         ))}
+        {goals.length === 0 && (
+          <View style={{ padding: 40, alignItems: "center" }}>
+            <Ionicons name="trophy-outline" size={64} color="#9CA3AF" />
+            <Text style={{ marginTop: 10, color: "#6B7280", fontSize: 16 }}>
+              No goals yet. Add your first goal!
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* Floating Add Button */}
@@ -208,7 +277,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
-    elevation: 4,
   },
   headerRow: {
     flexDirection: "row",
@@ -245,7 +313,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 5,
-    elevation: 6,
   },
 
   // Modal
