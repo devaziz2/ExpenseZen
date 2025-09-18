@@ -36,7 +36,6 @@ export default function NotificationsScreen() {
 
   const markAllAsRead = async () => {
     if (!userId) return;
-    console.log("inside mark as read");
     const updated = notifications.map((n) => ({ ...n, isRead: true }));
     setNotifications(updated);
 

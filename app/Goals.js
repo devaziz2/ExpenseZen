@@ -90,6 +90,26 @@ export default function GoalsScreen() {
     }
   };
 
+  const handleDateChange = (text) => {
+    // Remove any non-numeric characters
+    let formatted = text.replace(/[^0-9]/g, "");
+
+    if (formatted.length > 4 && formatted.length <= 6) {
+      // After year add "-"
+      formatted = formatted.slice(0, 4) + "-" + formatted.slice(4);
+    } else if (formatted.length > 6) {
+      // After year and month add "-"
+      formatted =
+        formatted.slice(0, 4) +
+        "-" +
+        formatted.slice(4, 6) +
+        "-" +
+        formatted.slice(6, 8);
+    }
+
+    setNewDate(formatted);
+  };
+
   const handleAddGoal = async () => {
     if (!newTitle.trim() || !newRequired || !newDate) {
       Alert.alert("Validation", "All fields are required.");
@@ -215,7 +235,9 @@ export default function GoalsScreen() {
               style={styles.modalInput}
               placeholder="Target Date (YYYY-MM-DD)"
               value={newDate}
-              onChangeText={setNewDate}
+              keyboardType="numeric"
+              maxLength={10} // YYYY-MM-DD
+              onChangeText={handleDateChange}
             />
 
             <View style={styles.modalButtons}>
@@ -318,7 +340,6 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -329,6 +350,16 @@ const styles = StyleSheet.create({
     padding: 20,
     width: "100%",
     maxWidth: 400,
+    // 👇 Light gray border
+    borderWidth: 1,
+    borderColor: "#E5E7EB", // Tailwind gray-200
+
+    // 👇 Shadow (iOS + Android)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3, // for Android
   },
   modalTitle: {
     fontSize: 20,

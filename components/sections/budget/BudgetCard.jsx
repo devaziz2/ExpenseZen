@@ -155,12 +155,14 @@ export default function BudgetCard({
               <TouchableOpacity
                 onPress={() => setShowEditModal(false)}
                 style={styles.cancelButton}
+                activeOpacity={0.7}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveEdit}
                 style={styles.saveButton}
+                activeOpacity={0.7}
               >
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
@@ -277,7 +279,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -325,11 +327,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "#F3F4F6",
     marginRight: 8,
   },
   saveButton: {
-    backgroundColor: "#1D3F69",
     marginLeft: 8,
   },
   cancelButtonText: {
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   saveButtonText: {
-    color: "#FFFFFF",
+    color: "#1D3F69",
     fontSize: 16,
     fontWeight: "600",
   },

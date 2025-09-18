@@ -1,8 +1,12 @@
 // TransferMoneyScreen.jsx
+import { db } from "@/firebase";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useCallback, useEffect, useState } from "react";
+
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -44,6 +48,45 @@ export default function TransferMoneyScreen() {
   const [isTransferring, setIsTransferring] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const [userID, setUserID] = useState();
+  const [user, setUser] = useState(null);
+
+  // ✅ Load userID once
+  useEffect(() => {
+    const loadUserData = async () => {
+      const storedUser = await AsyncStorage.getItem("userData");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUserID(parsedUser.id);
+      }
+    };
+    loadUserData();
+  }, []);
+
+  // ✅ Fetch Firestore data whenever screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserData = async () => {
+        if (!userID) return;
+        try {
+          const userDoc = await getDoc(doc(db, "users", userID));
+          if (userDoc.exists()) {
+            setUser(userDoc.data());
+            const data = userDoc.data();
+            setMonthlyLimit(data.monthlyLimit);
+            setSavingAmount(data.savings);
+            setTotalAmount(data.balance);
+            console.log("Actual users data again get...");
+          }
+        } catch (err) {
+          console.log("Error fetching user data:", err);
+        }
+      };
+
+      fetchUserData();
+    }, [userID])
+  );
+
   const fmt = (n) => "$" + (Number(n) || 0).toFixed(2);
 
   const validateTransfer = (amount) => {
@@ -64,37 +107,82 @@ export default function TransferMoneyScreen() {
     return true;
   };
 
-  const handleTransfer = () => {
+  // ✅ Validate + Transfer Money
+  const handleTransfer = async () => {
     if (!validateTransfer(transferAmount)) return;
     const amt = Number(transferAmount);
 
     setIsTransferring(true);
 
-    setTimeout(() => {
-      // Apply transfer
+    try {
+      const userRef = doc(db, "users", userID);
+
+      let newWallet = totalAmount;
+      let newSaving = savingAmount;
+
       if (direction === "walletToSaving") {
-        setTotalAmount((prev) => +(prev - amt).toFixed(2));
-        setSavingAmount((prev) => +(prev + amt).toFixed(2));
+        newWallet = +(totalAmount - amt).toFixed(2);
+        newSaving = +(savingAmount + amt).toFixed(2);
       } else {
-        setTotalAmount((prev) => +(prev + amt).toFixed(2));
-        setSavingAmount((prev) => +(prev - amt).toFixed(2));
+        newWallet = +(totalAmount + amt).toFixed(2);
+        newSaving = +(savingAmount - amt).toFixed(2);
       }
 
-      setIsTransferring(false);
+      // ✅ Update in Firestore
+      await updateDoc(userRef, {
+        balance: newWallet,
+        savings: newSaving,
+      });
+
+      // ✅ Update local state
+      setTotalAmount(newWallet);
+      setSavingAmount(newSaving);
+
       setShowSuccess(true);
       setTransferAmount("");
-    }, 1500); // simulate API delay
+    } catch (err) {
+      console.log("Transfer error:", err);
+      setInputError("Something went wrong. Try again.");
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
-  const handleSaveLimit = () => {
-    setMonthlyLimit(Number(tmpMonthlyLimit));
-    setShowEditLimit(false);
+  // ✅ Edit Monthly Limit
+  const handleSaveLimit = async () => {
+    try {
+      const newLimit = Number(tmpMonthlyLimit);
+      const userRef = doc(db, "users", userID);
+
+      await updateDoc(userRef, { monthlyLimit: newLimit });
+
+      setMonthlyLimit(newLimit);
+      setShowEditLimit(false);
+    } catch (err) {
+      console.log("Error updating monthly limit:", err);
+    }
   };
 
-  const handleAddMoney = () => {
-    setTotalAmount((prev) => prev + Number(tmpAddAmount));
-    setTmpAddAmount("");
-    setShowAddMoney(false);
+  // ✅ Add Money to Wallet
+  const handleAddMoney = async () => {
+    try {
+      const amt = Number(tmpAddAmount);
+      if (!amt || amt <= 0) {
+        setInputError("Enter a valid amount.");
+        return;
+      }
+
+      const newWallet = totalAmount + amt;
+      const userRef = doc(db, "users", userID);
+
+      await updateDoc(userRef, { balance: newWallet });
+
+      setTotalAmount(newWallet);
+      setTmpAddAmount("");
+      setShowAddMoney(false);
+    } catch (err) {
+      console.log("Error adding money:", err);
+    }
   };
 
   return (
@@ -163,7 +251,7 @@ export default function TransferMoneyScreen() {
                 direction === "walletToSaving" && styles.directionTextActive,
               ]}
             >
-              Wallet → Saving
+              Wallet to Saving
             </Text>
           </TouchableOpacity>
 
@@ -180,7 +268,7 @@ export default function TransferMoneyScreen() {
                 direction === "savingToWallet" && styles.directionTextActive,
               ]}
             >
-              Saving → Wallet
+              Saving to Wallet
             </Text>
           </TouchableOpacity>
         </View>
@@ -265,7 +353,12 @@ export default function TransferMoneyScreen() {
       </Modal>
 
       {/* Edit Monthly Limit Modal */}
-      <Modal visible={showEditLimit} transparent animationType="fade">
+      <Modal
+        visible={showEditLimit}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAddMoney(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Edit Monthly Limit</Text>
@@ -287,7 +380,12 @@ export default function TransferMoneyScreen() {
       </Modal>
 
       {/* Add Money Modal */}
-      <Modal visible={showAddMoney} transparent animationType="fade">
+      <Modal
+        visible={showAddMoney}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAddMoney(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Add Money to Wallet</Text>
@@ -460,6 +558,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  saveBtn: { backgroundColor: "#1D4ED8" },
+  saveBtn: { backgroundColor: "#1D3F69" },
   saveBtnText: { color: "#fff", fontWeight: "800" },
 });
