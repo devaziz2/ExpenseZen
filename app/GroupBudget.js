@@ -1,9 +1,12 @@
+import { db } from "@/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+
 import {
   Alert,
+  FlatList,
   Modal,
   ScrollView,
   StyleSheet,
@@ -13,90 +16,218 @@ import {
   View,
 } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+
 export default function GroupBudgetsScreen() {
+  const [userID, setUserID] = useState(null);
+  const [groupBudgets, setGroupBudgets] = useState([]);
   const router = useRouter();
-
-  const [groupBudgets, setGroupBudgets] = useState([
-    {
-      id: "1",
-      title: "Flat Rent",
-      totalAmount: 2000,
-      perHead: 500,
-      members: ["John", "Ali", "Sara", "Tom"],
-      paid: false, // ✅ tracks if user paid or not
-    },
-  ]);
-
-  // Modal states for Add Budget
+  // Add budget modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newTotal, setNewTotal] = useState("");
   const [newPerHead, setNewPerHead] = useState("");
-  const [newMembers, setNewMembers] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
+  const [members, setMembers] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
 
-  // Modal states for Pay
+  // Pay modal states
   const [showPayModal, setShowPayModal] = useState(false);
   const [currentBudgetId, setCurrentBudgetId] = useState(null);
   const [payAmount, setPayAmount] = useState("");
 
-  const handleDelete = (id) => {
-    Alert.alert(
-      "Delete Group",
-      "Are you sure you want to delete this budget?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () =>
-            setGroupBudgets((prev) =>
-              prev.filter((budget) => budget.id !== id)
-            ),
-        },
-      ]
-    );
-  };
+  // Load user ID from AsyncStorage
+  useEffect(() => {
+    const loadUserData = async () => {
+      const storedUser = await AsyncStorage.getItem("userData");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUserID(parsedUser.id);
+      }
+    };
+    loadUserData();
+  }, []);
 
-  const handleAddGroupBudget = () => {
-    if (!newTitle.trim() || !newTotal || !newPerHead || !newMembers.trim())
-      return;
+  // Realtime fetch budgets
+  useFocusEffect(() => {
+    if (!userID) return;
 
-    const membersArray = newMembers
-      .split(",")
-      .map((m) => m.trim())
-      .filter((m) => m.length > 0);
+    const q = query(collection(db, "groupBudgets"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter((budget) => budget.members.some((m) => m.id === userID));
+      setGroupBudgets(data);
+    });
 
-    const newBudget = {
-      id: Date.now().toString(),
-      title: newTitle.trim(),
-      totalAmount: parseFloat(newTotal),
-      perHead: parseFloat(newPerHead),
-      members: membersArray,
-      paid: false,
+    return () => unsubscribe();
+  }, [userID]);
+
+  // Search user by email (realtime suggestions)
+  useEffect(() => {
+    const searchUser = async () => {
+      if (memberEmail.trim().length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+        const q = query(
+          collection(db, "users"),
+          where("email", ">=", memberEmail),
+          where("email", "<=", memberEmail + "\uf8ff")
+        );
+        const querySnapshot = await getDocs(q);
+
+        const results = querySnapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Error searching users:", error);
+      }
     };
 
-    setGroupBudgets((prev) => [newBudget, ...prev]);
-    setShowAddModal(false);
-    setNewTitle("");
-    setNewTotal("");
-    setNewPerHead("");
-    setNewMembers("");
+    searchUser();
+  }, [memberEmail]);
+
+  // Select user from dropdown
+  const handleSelectUser = (user) => {
+    if (!members.some((m) => m.id === user.id)) {
+      setMembers((prev) => [
+        ...prev,
+        { id: user.id, firstName: user.fullName },
+      ]);
+    }
+    setMemberEmail("");
+    setSearchResults([]);
   };
 
-  const openPayModal = (id) => {
+  // Add new budget
+  const handleAddGroupBudget = async () => {
+    if (!newTitle || !newTotal || !newPerHead || members.length === 0) return;
+
+    const newBudget = {
+      title: newTitle,
+      totalAmount: parseFloat(newTotal),
+      perHead: parseFloat(newPerHead),
+      members: [...members, { id: userID, firstName: "You", paid: false }],
+      createdAt: new Date(),
+      createdBy: userID,
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, "groupBudgets"), newBudget);
+
+      // ✅ add reference to each member's subcollection
+      const allMembers = [...members, { id: userID, firstName: "You" }];
+      for (const member of allMembers) {
+        const userBudgetRef = doc(
+          db,
+          "users",
+          member.id,
+          "groupBudgets",
+          docRef.id
+        );
+        await setDoc(userBudgetRef, {
+          budgetId: docRef.id,
+          title: newBudget.title,
+          totalAmount: newBudget.totalAmount,
+          perHead: newBudget.perHead,
+          createdAt: new Date(),
+        });
+      }
+
+      setNewTitle("");
+      setNewTotal("");
+      setNewPerHead("");
+      setMembers([]);
+      setShowAddModal(false);
+    } catch (error) {
+      console.error("Error adding budget:", error);
+    }
+  };
+
+  // Delete budget
+  const handleDelete = async (id) => {
+    Alert.alert("Delete Group", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "groupBudgets", id));
+            setGroupBudgets((prev) => prev.filter((b) => b.id !== id));
+          } catch (error) {
+            console.error("Error deleting budget:", error);
+          }
+        },
+      },
+    ]);
+  };
+
+  // Open pay modal
+  const openPayModal = (id, perHead) => {
     setCurrentBudgetId(id);
+    setPayAmount(perHead.toString()); // ✅ auto-fill per head
     setShowPayModal(true);
   };
 
-  const handlePay = () => {
-    if (!payAmount) return;
-    setGroupBudgets((prev) =>
-      prev.map((budget) =>
-        budget.id === currentBudgetId ? { ...budget, paid: true } : budget
-      )
-    );
-    setPayAmount("");
-    setShowPayModal(false);
+  // Handle pay
+  const handlePay = async () => {
+    if (!payAmount || !userID) return;
+
+    try {
+      // ✅ subtract from user's monthlyLimit
+      const userRef = doc(db, "users", userID);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const amount = parseFloat(payAmount);
+
+        const updatedLimit = (userData.monthlyLimit || 0) - amount;
+        const updatedSpendings = (userData.spendings || 0) + amount;
+
+        await updateDoc(userRef, {
+          monthlyLimit: updatedLimit,
+          spendings: updatedSpendings,
+        });
+      }
+
+      // ✅ update budget as paid for this user
+      const budgetRef = doc(db, "groupBudgets", currentBudgetId);
+      const budgetSnap = await getDoc(budgetRef);
+
+      if (budgetSnap.exists()) {
+        const budgetData = budgetSnap.data();
+        const updatedMembers = budgetData.members.map((m) =>
+          m.id === userID ? { ...m, paid: true } : m
+        );
+        await updateDoc(budgetRef, { members: updatedMembers });
+      }
+
+      setPayAmount("");
+      setShowPayModal(false);
+    } catch (error) {
+      console.error("Error paying:", error);
+    }
   };
 
   return (
@@ -130,38 +261,48 @@ export default function GroupBudgetsScreen() {
 
       {/* Group Budgets List */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {groupBudgets.map((budget) => (
-          <View key={budget.id} style={styles.card}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{budget.title}</Text>
-              <Text style={styles.cardSub}>
-                Total: ${budget.totalAmount} | Per Head: ${budget.perHead}
-              </Text>
-              <Text style={styles.cardMembers}>
-                Members: {budget.members.join(", ")}
-              </Text>
+        {groupBudgets.map((budget) => {
+          const currentUser = budget.members.find((m) => m.id === userID);
+          const isPaid = currentUser?.paid || false;
 
-              {budget.paid ? (
-                <View style={styles.paidRow}>
-                  <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                  <Text style={styles.paidText}>Paid</Text>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.payButton}
-                  onPress={() => openPayModal(budget.id)}
-                >
-                  <Ionicons name="card-outline" size={18} color="white" />
-                  <Text style={styles.payButtonText}>Pay Your Share</Text>
+          return (
+            <View key={budget.id} style={styles.card}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{budget.title}</Text>
+                <Text style={styles.cardSub}>
+                  Total: ${budget.totalAmount} | Per Head: ${budget.perHead}
+                </Text>
+                <Text style={styles.cardMembers}>
+                  Members: {budget.members.map((m) => m.firstName).join(", ")}
+                </Text>
+
+                {isPaid ? (
+                  <View style={styles.paidRow}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={18}
+                      color="#10B981"
+                    />
+                    <Text style={styles.paidText}>Paid</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.payButton}
+                    onPress={() => openPayModal(budget.id, budget.perHead)}
+                  >
+                    <Ionicons name="card-outline" size={18} color="white" />
+                    <Text style={styles.payButtonText}>Pay Your Share</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {budget.createdBy === userID && (
+                <TouchableOpacity onPress={() => handleDelete(budget.id)}>
+                  <Ionicons name="trash-outline" size={22} color="#DC2626" />
                 </TouchableOpacity>
               )}
             </View>
-
-            <TouchableOpacity onPress={() => handleDelete(budget.id)}>
-              <Ionicons name="trash-outline" size={22} color="#DC2626" />
-            </TouchableOpacity>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {/* Floating Add Button */}
@@ -182,7 +323,6 @@ export default function GroupBudgetsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Group Budget</Text>
-
             <TextInput
               style={styles.modalInput}
               placeholder="Budget Title"
@@ -203,12 +343,36 @@ export default function GroupBudgetsScreen() {
               onChangeText={setNewPerHead}
               keyboardType="numeric"
             />
+
+            {/* Search member by email */}
             <TextInput
               style={styles.modalInput}
-              placeholder="Members (comma separated)"
-              value={newMembers}
-              onChangeText={setNewMembers}
+              placeholder="Enter Member Email"
+              value={memberEmail}
+              onChangeText={setMemberEmail}
             />
+
+            {searchResults.length > 0 && (
+              <FlatList
+                data={searchResults}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.dropdownItem}
+                    onPress={() => handleSelectUser(item)}
+                  >
+                    <Text>{item.email}</Text>
+                  </TouchableOpacity>
+                )}
+                style={styles.dropdown}
+              />
+            )}
+
+            {members.length > 0 && (
+              <Text style={{ marginVertical: 5 }}>
+                Members: {members.map((m) => m.firstName).join(", ")}
+              </Text>
+            )}
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -217,7 +381,6 @@ export default function GroupBudgetsScreen() {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={handleAddGroupBudget}
                 style={[styles.modalButton, styles.saveButton]}
@@ -238,16 +401,9 @@ export default function GroupBudgetsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Pay Your Share</Text>
-
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter Amount"
-              value={payAmount}
-              onChangeText={setPayAmount}
-              keyboardType="numeric"
-            />
-
+            <Text style={styles.modalTitle}>
+              Are you sure you want to pay ${payAmount}?
+            </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 onPress={() => setShowPayModal(false)}
@@ -255,12 +411,11 @@ export default function GroupBudgetsScreen() {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={handlePay}
                 style={[styles.modalButton, styles.saveButton]}
               >
-                <Text style={styles.saveButtonText}>Pay</Text>
+                <Text style={styles.saveButtonText}>Yes, Pay</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -290,6 +445,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   headerTitlee: {
     fontSize: 20,
     fontWeight: "700",
@@ -328,6 +484,18 @@ const styles = StyleSheet.create({
 
   scrollContent: { paddingBottom: 100 },
 
+  dropdown: {
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    marginVertical: 4,
+  },
+  dropdownItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
+  },
   // Group Card
   card: {
     backgroundColor: "white",

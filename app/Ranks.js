@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -11,31 +12,42 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { db } from "../firebase";
 
 export default function RankListScreen() {
   const router = useRouter();
 
-  // Dummy leaderboard data
-  const [users] = useState([
-    { id: "1", name: "Ali", goalsMet: 12 },
-    { id: "2", name: "Sara", goalsMet: 10 },
-    { id: "3", name: "John", goalsMet: 8 },
-    { id: "4", name: "Ayesha", goalsMet: 7 },
-    { id: "5", name: "Hamza", goalsMet: 6 },
-    { id: "6", name: "Zara", goalsMet: 5 },
-    { id: "7", name: "Bilal", goalsMet: 4 },
-    { id: "8", name: "Usman", goalsMet: 4 },
-    { id: "9", name: "Fatima", goalsMet: 3 },
-    { id: "10", name: "David", goalsMet: 2 },
-  ]);
-
-  const podium = users.slice(0, 3);
-  const rest = users.slice(3);
-
-  // Animations
+  const [users, setUsers] = useState([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
+  // 🔹 Load users from Firestore
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const querySnap = await getDocs(collection(db, "users"));
+        let data = [];
+        querySnap.forEach((doc) => {
+          data.push({
+            id: doc.id,
+            name: doc.data().fullName || "Anonymous",
+            goalsMet: doc.data().goalsComplete || 0,
+          });
+        });
+
+        // sort by goalsMet (high → low)
+        data.sort((a, b) => b.goalsMet - a.goalsMet);
+
+        setUsers(data);
+      } catch (err) {
+        console.error("Error fetching leaderboard:", err);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // 🔹 Animations
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -52,6 +64,10 @@ export default function RankListScreen() {
       }),
     ]).start();
   }, []);
+
+  // Top 3 for podium
+  const podium = users.slice(0, 3);
+  const rest = users.slice(3);
 
   return (
     <View style={styles.container}>

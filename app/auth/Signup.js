@@ -84,7 +84,9 @@ export default function SignupScreen() {
           spendings: 0,
           monthlyLimit: 0,
           budgets: [],
+          groupBudget: [],
           createdAt: new Date(),
+          goalsComplete: 0,
         });
 
         // console.log("✅ User created:", userCredential.user);
