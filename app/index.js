@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useRef } from "react";
@@ -78,8 +79,13 @@ export default function Splash() {
             useNativeDriver: true,
           }),
         ]).start(() => {
-          setTimeout(() => {
-            router.replace("/auth/Login"); // small pause before moving
+          setTimeout(async () => {
+            const storedUser = await AsyncStorage.getItem("userData");
+            if (storedUser) {
+              router.replace("/tabs/Home");
+            } else {
+              router.replace("/auth/Login");
+            }
           }, 500);
         });
       }, 1200); // 1.2 second delay before animation starts

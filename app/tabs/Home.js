@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -21,19 +21,21 @@ export default function Home() {
   const [userID, setUserID] = useState();
   const [user, setUser] = useState(null);
 
-  // ✅ Load userID once
-  useEffect(() => {
-    const loadUserData = async () => {
-      const storedUser = await AsyncStorage.getItem("userData");
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUserID(parsedUser.id);
-      }
-    };
-    loadUserData();
-  }, []);
+  // ✅ Load userID whenever screen focuses
+  useFocusEffect(
+    useCallback(() => {
+      const loadUserData = async () => {
+        const storedUser = await AsyncStorage.getItem("userData");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUserID(parsedUser.id);
+        }
+      };
+      loadUserData();
+    }, []) // <-- wrapped in useCallback, no second arg to useFocusEffect
+  );
 
-  // ✅ Fetch Firestore data whenever screen comes into focus
+  // ✅ Fetch Firestore data whenever screen focuses AND userID changes
   useFocusEffect(
     useCallback(() => {
       const fetchUserData = async () => {
@@ -50,7 +52,7 @@ export default function Home() {
       };
 
       fetchUserData();
-    }, [userID])
+    }, [userID]) // <-- dependencies go here
   );
 
   return (

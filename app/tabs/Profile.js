@@ -1,6 +1,9 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
+  Alert,
   Modal,
   Share,
   StyleSheet,
@@ -10,15 +13,97 @@ import {
   View,
 } from "react-native";
 
-export default function ProfileScreen() {
-  const [name, setName] = useState("John Doe");
-  const [email] = useState("johndoe@email.com");
-  const [editing, setEditing] = useState(false);
-  const [newName, setNewName] = useState(name);
+import { updatePassword } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+import Toast from "react-native-toast-message";
+import { auth, db } from "../../firebase";
 
-  const handleSave = () => {
-    if (newName.trim()) setName(newName);
+export default function ProfileScreen() {
+  const router = useRouter();
+
+  const [user, setUser] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [changingPass, setChangingPass] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+
+  // ✅ Load from AsyncStorage
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("userData");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setNewName(parsedUser.name);
+        }
+      } catch (error) {
+        console.log("Error loading user:", error);
+      }
+    };
+    loadUserData();
+  }, []);
+
+  // ✅ Save updated name in Firebase + AsyncStorage
+  const handleSaveName = async () => {
+    if (!newName.trim()) return;
+
+    try {
+      const userDocRef = doc(db, "users", user.id); // assumes your users are stored in "users" collection
+      await updateDoc(userDocRef, { fullName: newName });
+
+      const updatedUser = { ...user, fullName: newName };
+      setUser(updatedUser);
+
+      await AsyncStorage.setItem("userData", JSON.stringify(updatedUser));
+      Toast.show({
+        type: "success",
+        text1: "Updated",
+        text2: "Name updated successfully!",
+        visibilityTime: 2500,
+        position: "top",
+      });
+    } catch (error) {
+      console.log("Error updating name:", error);
+      Alert.alert("Error", "Could not update name");
+    }
+
     setEditing(false);
+  };
+
+  // ✅ Change password in Firebase Auth
+  const handleChangePassword = async () => {
+    if (newPassword.trim().length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters long");
+      return;
+    }
+
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+
+      const updatedUser = { ...user, password: newPassword };
+      setUser(updatedUser);
+      await AsyncStorage.setItem("userData", JSON.stringify(updatedUser));
+
+      Toast.show({
+        type: "success",
+        text1: "Updated",
+        text2: "Password updated successfully!",
+        visibilityTime: 2500,
+        position: "top",
+      });
+    } catch (error) {
+      console.log("Error updating password:", error);
+      Alert.alert("Error", error.message || "Could not update password");
+    }
+
+    setChangingPass(false);
+  };
+
+  // ✅ Logout
+  const handleLogout = async () => {
+    await AsyncStorage.clear();
+    router.replace("/auth/Login"); // redirect to login screen
   };
 
   const handleShare = async () => {
@@ -32,10 +117,13 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
-    // TODO: connect with your auth logout logic
-    console.log("User logged out");
-  };
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading user...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -48,21 +136,18 @@ export default function ProfileScreen() {
       <View style={styles.detailsCard}>
         <View style={styles.detailRow}>
           <Text style={styles.label}>Name</Text>
-          <Text style={styles.value}>{name}</Text>
+          <Text style={styles.value}>{user?.fullName}</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.detailRow}>
           <Text style={styles.label}>Email</Text>
-          <Text style={[styles.value, { color: "#6B7280" }]}>{email}</Text>
+          <Text style={[styles.value, { color: "#6B7280" }]}>{user.email}</Text>
         </View>
       </View>
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.actionBtn, styles.primaryBtn]}
-          onPress={() => setEditing(true)}
-        >
+        <TouchableOpacity style={[styles.actionBtn, styles.primaryBtn]}>
           <MaterialCommunityIcons name="account-edit" size={20} color="white" />
           <Text style={styles.actionText}>Edit Profile</Text>
         </TouchableOpacity>
@@ -105,9 +190,43 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveBtn]}
-                onPress={handleSave}
+                onPress={handleSaveName}
               >
                 <Text style={{ color: "white", fontWeight: "600" }}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={changingPass} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+            <TextInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              style={styles.input}
+              placeholder="Enter new password"
+              placeholderTextColor="#9CA3AF"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelBtn]}
+                onPress={() => setChangingPass(false)}
+              >
+                <Text style={{ color: "#374151", fontWeight: "500" }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveBtn]}
+                onPress={handleChangePassword}
+              >
+                <Text style={{ color: "white", fontWeight: "600" }}>
+                  Update
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
