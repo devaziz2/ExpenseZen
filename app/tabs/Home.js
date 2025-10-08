@@ -1,7 +1,7 @@
 import { db } from "@/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import { useCallback, useState } from "react";
 import {
@@ -17,34 +17,40 @@ import BudgetingTools from "../../components/sections/Home/BudgetTools";
 import AlertIcon from "../../components/ui/AlterIcon";
 import AnimatedProgressBar from "../../components/ui/ProgressBar";
 
-export default function Home() {
+export default function Home({ isFocused }) {
   const [userID, setUserID] = useState();
   const [user, setUser] = useState(null);
-
-  // ✅ Load userID whenever screen focuses
   useFocusEffect(
     useCallback(() => {
       const loadUserData = async () => {
-        const storedUser = await AsyncStorage.getItem("userData");
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUserID(parsedUser.id);
+        try {
+          const storedUser = await AsyncStorage.getItem("userData");
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUserID(parsedUser.id);
+          }
+        } catch (err) {
+          console.log("Error loading user data:", err);
         }
       };
-      loadUserData();
-    }, []) // <-- wrapped in useCallback, no second arg to useFocusEffect
+
+      if (isFocused) {
+        loadUserData();
+      }
+    }, [isFocused]) // 👈 dependencies go inside useCallback, not useFocusEffect
   );
 
-  // ✅ Fetch Firestore data whenever screen focuses AND userID changes
+  // ✅ 2. Fetch Firestore data when focused & userID exists
   useFocusEffect(
     useCallback(() => {
+      if (!isFocused || !userID) return;
+
       const fetchUserData = async () => {
-        if (!userID) return;
         try {
           const userDoc = await getDoc(doc(db, "users", userID));
           if (userDoc.exists()) {
             setUser(userDoc.data());
-            console.log("Actual users data again get...");
+            console.log("✅ User data fetched again on focus");
           }
         } catch (err) {
           console.log("Error fetching user data:", err);
@@ -52,7 +58,7 @@ export default function Home() {
       };
 
       fetchUserData();
-    }, [userID]) // <-- dependencies go here
+    }, [isFocused, userID])
   );
 
   return (

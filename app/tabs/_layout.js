@@ -89,7 +89,6 @@ export default function TabsLayout() {
   };
 
   const renderContent = () => {
-    const ActiveComponent = tabs[activeTab].component;
     return (
       <Animated.View
         style={[
@@ -106,14 +105,45 @@ export default function TabsLayout() {
           },
         ]}
       >
-        {tabs.map((tab, index) => (
-          <View key={tab.key} style={styles.screenContainer}>
-            <tab.component />
-          </View>
-        ))}
+        {tabs.map((tab, index) => {
+          const ScreenComponent = tab.component;
+          return (
+            <View key={tab.key} style={styles.screenContainer}>
+              {/* 👇 Pass focus state to each screen */}
+              <ScreenComponent isFocused={activeTab === index} />
+            </View>
+          );
+        })}
       </Animated.View>
     );
   };
+
+  // const renderContent = () => {
+  //   const ActiveComponent = tabs[activeTab].component;
+  //   return (
+  //     <Animated.View
+  //       style={[
+  //         styles.contentContainer,
+  //         {
+  //           transform: [
+  //             {
+  //               translateX: slideAnim.interpolate({
+  //                 inputRange: [0, 1, 2, 3],
+  //                 outputRange: [0, -width, -width * 2, -width * 3],
+  //               }),
+  //             },
+  //           ],
+  //         },
+  //       ]}
+  //     >
+  //       {tabs.map((tab, index) => (
+  //         <View key={tab.key} style={styles.screenContainer}>
+  //           <tab.component />
+  //         </View>
+  //       ))}
+  //     </Animated.View>
+  //   );
+  // };
 
   const renderTabButton = (tab, index) => {
     const isActive = activeTab === index;

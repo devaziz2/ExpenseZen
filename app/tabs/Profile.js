@@ -147,7 +147,10 @@ export default function ProfileScreen() {
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity style={[styles.actionBtn, styles.primaryBtn]}>
+        <TouchableOpacity
+          onPress={() => setEditing(true)}
+          style={[styles.actionBtn, styles.primaryBtn]}
+        >
           <MaterialCommunityIcons name="account-edit" size={20} color="white" />
           <Text style={styles.actionText}>Edit Profile</Text>
         </TouchableOpacity>

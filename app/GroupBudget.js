@@ -2,7 +2,7 @@ import { db } from "@/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   Alert,
@@ -62,19 +62,21 @@ export default function GroupBudgetsScreen() {
   }, []);
 
   // Realtime fetch budgets
-  useFocusEffect(() => {
-    if (!userID) return;
+  useFocusEffect(
+    useCallback(() => {
+      if (!userID) return;
 
-    const q = query(collection(db, "groupBudgets"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs
-        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-        .filter((budget) => budget.members.some((m) => m.id === userID));
-      setGroupBudgets(data);
-    });
+      const q = query(collection(db, "groupBudgets"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter((budget) => budget.members.some((m) => m.id === userID));
+        setGroupBudgets(data);
+      });
 
-    return () => unsubscribe();
-  }, [userID]);
+      return () => unsubscribe();
+    }, [userID])
+  );
 
   // Search user by email (realtime suggestions)
   useEffect(() => {
